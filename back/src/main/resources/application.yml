@@ -44,11 +44,11 @@ jwt:
   prefix: Bearer
 
 file:
-  # upload-dir: /home/ubuntu/app/back/build/libs/uploads
-  upload-dir: uploads
+  upload-dir: /home/ubuntu/app/back/build/libs/uploads
+  #upload-dir: uploads
 
 server:
-  port: 8484
+  port: 8080
 
 jackson:
   time-zone: UTC
