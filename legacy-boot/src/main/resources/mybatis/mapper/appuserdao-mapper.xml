@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.thejoa703.dao.AppUserDao">
+	<!-- create 1. 회원가입 -->
+	<insert  id="insertAppUser"     parameterType="AppUserDto" >
+		insert into appuser( APP_USER_ID ,  EMAIL ,  PASSWORD , MBTI_TYPE_ID, UFILE ,  MOBILE ,NICKNAME ,PROVIDER , PROVIDER_ID)
+		values      ( appuser_seq.nextval, 
+				#{email       , jdbcType=VARCHAR } , 	
+				#{password    , jdbcType=VARCHAR } , 	
+				#{mbtiTypeId  , jdbcType=INTEGER } , 	
+				#{ufile       , jdbcType=VARCHAR } , 	
+				#{mobile      , jdbcType=VARCHAR } , 	
+				#{nickname    , jdbcType=VARCHAR } , 	
+				#{provider    , jdbcType=VARCHAR } , 	
+				#{providerId  , jdbcType=VARCHAR }   
+		)
+	</insert>
+	
+	<!-- read   2-1. 로그인 (이메일로 이메일, 비밀번호, 권한가져오기)  -->
+	<resultMap  id="appUserMap"  type="AppUserDto">
+		<id     property="appUserId"  	 column="APP_USER_ID"  />
+		<result property="email"      	 column="EMAIL"        />
+		<result property="password"      column="PASSWORD"     />
+		<result property="mbtiTypeId"    column="MBTI_TYPE_ID" />
+		<result property="createdAt"     column="CREATED_AT"   />
+		<result property="ufile"         column="UFILE"        />
+		<result property="mobile"        column="MOBILE"       />
+		<result property="nickname"      column="NICKNAME"     />
+		<result property="provider"      column="PROVIDER"     />
+		<result property="providerId"    column="PROVIDER_ID"  />
+	</resultMap>
+	
+	<resultMap  id="authMap"  type="AuthDto">
+		<result property="email"      	 column="EMAIL"        />
+		<result property="auth"      	 column="AUTH"        />
+	</resultMap>
+	
+	<resultMap  id="appUserAuthMap"  type="AppUserAuthDto">
+		<result     property="email"      	 column="EMAIL"        />
+		<result     property="password"      column="PASSWORD"     />
+		<collection property="authList"      resultMap="authMap"   />
+	</resultMap>
+	
+	<select  resultMap="appUserAuthMap"   id="readAuthByEmail"    parameterType="AppUserDto"  >
+		select  u.email , u.password, a.auth
+		from    appuser u   left join  authorities a  on  u.email = a.email
+		where   u.email = #{email}  and  u.provider = #{provider}
+	</select>
+	
+	<!-- read   2-2. 이메일로 유저정보찾기     -->
+	<select  resultMap="appUserMap"   id="findByEmail"        parameterType="AppUserDto" >
+		select  *  from appuser where  email=#{email}  and  provider = #{provider}
+	</select>
+	
+	<!-- read   2-3. 이메일로 아이디중복검사    -->
+	<select  resultType="int"   id="iddoubleByEmail"    parameterType="AppUserDto" >
+		select  count(*) from appuser where  email=#{email}  and  provider = #{provider}
+	</select>
+	
+	<!-- update 3. 회원수정 -->
+	<update  id="updateAppUser"    parameterType="AppUserDto" >
+		update  appuser
+		<set>	
+			<if test="password   != null"> PASSWORD =	#{password    , jdbcType=VARCHAR } , 	 </if>
+			<if test="mbtiTypeId != null"> MBTI_TYPE_ID= #{mbtiTypeId  , jdbcType=INTEGER } , 	 </if>	
+			<if test="ufile      != null"> UFILE = #{ufile       , jdbcType=VARCHAR } , 	 </if>	
+			<if test="mobile     != null"> MOBILE = #{mobile      , jdbcType=VARCHAR } , 	 </if>
+			<if test="nickname   != null"> NICKNAME = #{nickname    , jdbcType=VARCHAR } ,    </if>
+			<if test="provider   != null"> PROVIDER = #{provider    , jdbcType=VARCHAR } , 	 </if>
+			<if test="providerId  != null"> PROVIDER_ID = #{providerId  , jdbcType=VARCHAR } , 	 </if>  
+		</set>
+		where  APP_USER_ID = #{appUserId}
+	</update>
+	
+	<!-- delete 4. 회원삭제 -->
+	<delete  id="deleteAppUser"    parameterType="AppUserDto" >
+		delete  from appuser  where   APP_USER_ID = #{appUserId}
+	</delete>
+	 
+	<!-- create 5. 권한삽입 --> 
+	<insert  id="insertAuth"  parameterType="AuthDto">
+	insert into authorities (AUTH_ID                 , email                       , auth                       ) 
+	values                  (authorities_seq.nextval , #{email, jdbcType=VARCHAR}  , #{auth, jdbcType=VARCHAR}  )
+	</insert>
+	
+	<!-- delete 6. 권한삭제 -->  
+	<delete  id="deleteAuth"  parameterType="AuthDto">
+	delete  from authorities  where email = #{email}
+	</delete>
+</mapper>

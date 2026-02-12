@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<!-- 	#1. layout 렌더링	 -->
+<head lang="ko">
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+	<div layout:fragment="content">
+		<div class="container  my-5">
+			<h3> MELON 크롤링 </h3>
+		    <table class="table table-bordered table-striped table-hover result">
+		        <caption> MELON 크롤링 </caption>
+		        <thead>
+		        <tr>
+		            <th scope="col">NO</th>
+		            <th scope="col">TITLE</th>
+		            <th scope="col">ARTIST</th> 
+		        </tr>
+		        </thead>
+		        <tbody>
+		        <!-- ajax 호출 후 내용이 업데이트 될 영역 -->
+		        </tbody>
+		    </table>  
+		    <script>
+		    	$(function(){
+		    		$.ajax({
+		    			url:"/api/jsoup" , 
+		    			type:"GET" , 
+		    			success:function(res){
+		    				const rows = res.data.map((song, index)=>`
+		    					<tr>
+		    						<td>${index+1}</td>
+		    						<td>${song.title}</td>
+		    						<td>${song.artist}</td>
+		    					</tr>
+		    				`).join("");
+		    				$(".result tbody").html(rows);
+		    			}, 
+		    			error:function(){  alert("데이터 로딩 실패");  }
+		    		});
+		    	}); 
+		    </script>
+	    </div>
+	</div> 
+	<!--    http://localhost:8484/api/jsoupView -->
+</body>
+</html>

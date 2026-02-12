@@ -1,0 +1,136 @@
+
+■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■  PART001 BOARD
+
+    SQL> desc sboard2;
+    Name                                      Null?    Type
+    ----------------------------------------- -------- ----------------------------
+    ID                                        NOT NULL NUMBER
+    APP_USER_ID                               NOT NULL NUMBER
+    BTITLE                                    NOT NULL VARCHAR2(1000)
+    BCONTENT                                  NOT NULL CLOB
+    BPASS                                     NOT NULL VARCHAR2(255)
+    BFILE                                              VARCHAR2(255)
+    BHIT                                               NUMBER
+    BIP                                       NOT NULL VARCHAR2(255)
+    CREATED_AT                                         DATE
+    
+    1. 테이블
+    CREATE TABLE sboard2 (
+	  id NUMBER PRIMARY KEY,
+	  app_user_id NUMBER NOT NULL,
+	  btitle VARCHAR2(1000) NOT NULL,
+	  bcontent CLOB NOT NULL,
+	  bpass VARCHAR2(255) NOT NULL,
+	  bfile VARCHAR2(255) DEFAULT '0.png',
+	  bhit NUMBER DEFAULT 0,
+	  bip VARCHAR2(255) NOT NULL,
+	  created_at DATE  default sysdate
+	); 
+	create sequence sboard2_seq;
+
+■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■ ■  PART002 APPUSER
+
+
+```
+ APPUSER
+ ┌───────────────────────────────────────────────┐
+ │ APP_USER_ID (PK)                              │
+ │ EMAIL (NOT NULL, UNIQUE with PROVIDER)        │
+ │ PASSWORD                                      │
+ │ MBTI_TYPE_ID                                  │
+ │ CREATED_AT                                    │
+ │ UFILE                                         │
+ │ MOBILE                                        │
+ │ NICKNAME                                      │
+ │ PROVIDER (NOT NULL)                           │
+ │ PROVIDER_ID                                   │
+ └───────────────────────────────────────────────┘
+                ▲
+                │  (FK: APP_USER_ID)
+                │
+ AUTHORITIES
+ ┌───────────────────────────────────────────────┐
+ │ AUTH_ID (PK)                                  │
+ │ EMAIL                                         │
+ │ AUTH (NOT NULL, UNIQUE with APP_USER_ID)      │
+ │ APP_USER_ID (FK → APPUSER.APP_USER_ID)        │
+ └───────────────────────────────────────────────┘
+````
+
+SQL> desc appuser;
+Name                                      Null?    Type
+----------------------------------------- -------- ----------------------------
+APP_USER_ID                               NOT NULL NUMBER(5)
+EMAIL                                     NOT NULL VARCHAR2(100)
+PASSWORD                                           VARCHAR2(100)
+MBTI_TYPE_ID                                       NUMBER(3)
+CREATED_AT                                         DATE
+UFILE                                              VARCHAR2(255)
+MOBILE                                             VARCHAR2(50)
+NICKNAME                                           VARCHAR2(50)
+PROVIDER                                  NOT NULL VARCHAR2(50)
+PROVIDER_ID                                        VARCHAR2(100)
+
+SQL> desc authorities;
+ Name                                      Null?    Type
+ ----------------------------------------- -------- ----------------------------
+ AUTH_ID                                   NOT NULL NUMBER(5)
+ EMAIL                                              VARCHAR2(255)
+ AUTH                                      NOT NULL VARCHAR2(255)
+ APP_USER_ID                                        NUMBER(5)
+
+SQL>
+
+
+
+
+## ✅ APPUSER 테이블 생성
+
+```sql
+CREATE TABLE APPUSER (
+    APP_USER_ID   NUMBER(5)       CONSTRAINT PK_APPUSER PRIMARY KEY,
+    EMAIL         VARCHAR2(100)   CONSTRAINT NN_APPUSER_EMAIL NOT NULL,
+    PASSWORD      VARCHAR2(100),
+    MBTI_TYPE_ID  NUMBER(3),
+    CREATED_AT    DATE,
+    UFILE         VARCHAR2(255),
+    MOBILE        VARCHAR2(50),
+    NICKNAME      VARCHAR2(50),
+    PROVIDER      VARCHAR2(50)    CONSTRAINT NN_APPUSER_PROVIDER NOT NULL,
+    PROVIDER_ID   VARCHAR2(100)
+);
+	create sequence appuser_seq;
+
+-- 이메일 + PROVIDER 조합 유니크 제약
+ALTER TABLE APPUSER
+ADD CONSTRAINT UK_APPUSER_EMAIL_PROVIDER UNIQUE (EMAIL, PROVIDER);
+```
+
+---
+
+## ✅ AUTHORITIES 테이블 생성
+
+```sql
+CREATE TABLE AUTHORITIES (
+    AUTH_ID      NUMBER(5)        CONSTRAINT PK_AUTHORITIES PRIMARY KEY,
+    EMAIL        VARCHAR2(255),
+    AUTH         VARCHAR2(255)    CONSTRAINT NN_AUTHORITIES_AUTH NOT NULL,
+    APP_USER_ID  NUMBER(5)
+);
+
+create sequence authorities_seq;
+
+-- 동일 사용자에게 같은 권한 중복 방지 (APP_USER_ID + AUTH 유니크)
+ALTER TABLE AUTHORITIES
+ADD CONSTRAINT UK_AUTHORITIES_USER_AUTH UNIQUE (APP_USER_ID, AUTH);
+
+-- 외래키 설정: AUTHORITIES.APP_USER_ID → APPUSER.APP_USER_ID
+ALTER TABLE AUTHORITIES
+ADD CONSTRAINT FK_AUTHORITIES_APPUSER FOREIGN KEY (APP_USER_ID)
+REFERENCES APPUSER (APP_USER_ID);
+```
+
+ 
+
+
+ 

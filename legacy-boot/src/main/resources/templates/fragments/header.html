@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head lang="ko">
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+	<!-- header.html        fragments/header 파일의  header 블록   
+	     <th:block th:replace="fragments/header :: header" /> -->
+	<th:block th:fragment="header">
+		<div class="p-5 bg-primary text-white text-center">
+			<h1><a class="nav-link"  sec:authorize="isAnonymous()" th:href="@{/}">My First Bootstrap 5 Page</a></h1>
+			<p>Resize this responsive page to see the effect!</p>
+		</div>
+		<nav class="navbar navbar-expand-sm bg-dark navbar-dark">
+			<div class="container-fluid">
+				<ul class="navbar-nav  me-auto">
+					<li class="nav-item"><a class="nav-link"   th:href="@{/board/list}">BOARD</a></li>  
+				</ul>
+				
+				<ul class="d-flex navbar-nav">
+					<li class="nav-item"><a class="nav-link"  sec:authorize="isAnonymous()" th:href="@{/users/login}">LOGIN</a></li> 
+					<li class="nav-item"><a class="nav-link"  sec:authorize="isAnonymous()" th:href="@{/users/join}">JOIN</a></li>  
+					<li class="nav-item"><a class="nav-link"  sec:authorize="isAuthenticated()"  th:href="@{/users/logout}">LOGOUT</a></li> 
+					<li class="nav-item"><a class="nav-link"  sec:authentication="principal.username"
+							sec:authorize="isAuthenticated()" th:href="@{/users/mypage}"></a></li>  
+				</ul>				
+			</div>
+		</nav>
+	</th:block>
+</body>
+</html>

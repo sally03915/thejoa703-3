@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	layout:decorate="~{fragments/layout}">
+<!-- 	#1. layout 렌더링	 -->
+<head lang="ko">
+<meta charset="UTF-8">
+<title>Insert title here</title>
+</head>
+<body>
+	<div layout:fragment="content">
+		 <h3>OpenAI - ChatGPT</h3>
+		 <div  class="alert alert-primary"> 일기작성시 일기내용요약해서 이미지로 나타내기.</div>
+		 <div  class="my-3">
+		 	<textarea  class="form-control"   placeholder="오늘의 일기를 작성해주세요"
+		 			id="userMessage" title="일기작성"></textarea>	
+		 </div>
+		 <div  class="my-3 text-end">
+		 	<input type="button"  id="sendBtn"  class="btn btn-primary" value="일기작성"/>
+		 </div>
+		 <div   id="response"  class="alert alert-warning"></div>
+		 
+	    <meta name="_csrf"        th:content="${_csrf.token}"/>
+		<meta name="_csrf_header" th:content="${_csrf.headerName}"/>
+	 	<script>
+			$(function(){
+				let  token  = $("meta[name='_csrf']").attr("content");
+				let  header = $("meta[name='_csrf_header']").attr("content");
+				console.log(token);
+				console.log(header);
+				//  아이디가 sendBtn 클릭하면 본인이름 알림창
+				$("#sendBtn").on("click" , function(){ //alert("홍길동");
+					let userMessage = $("#userMessage").val().trim();
+					if( userMessage.length <= 0 ){
+						$("#userMessage").focus();
+						alert("일기를 작성해주세요");
+						return;
+					}else{
+						$.ajax({
+							url:"/api/openai",
+							type:"POST",
+							data: JSON.stringify(userMessage), 
+							contentType:"application/json; charset=UTF-8" , 
+							beforeSend: function(xhr){
+								xhr.setRequestHeader(header, token);  //CSRF 토큰추가
+							},
+							success:function(result){ $("#response").text(result);  } , 
+							error:function(xhr, status, error){ $("#response").text(  xhr.responseText); }
+						});
+					}	
+				});
+			});
+		</script>
+	</div>  
+
+</body>
+</html>
+<!-- http://localhost:8484/api/openai -->

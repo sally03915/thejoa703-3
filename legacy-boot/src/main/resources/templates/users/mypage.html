@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+	xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+	xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+	layout:decorate="~{fragments/layout}">
+<body>
+<div layout:fragment="content"> 	
+	<div class="container p-5">
+		<h2 class="mb-4">마이페이지</h2>
+		<!-- 알림메시지 -->
+	    <div th:if="${successMessage}" class="alert alert-info alert-dismissible fade show" role="alert">
+	        <span th:text="${successMessage}"></span>
+	        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+	    </div>
+	    <div th:if="${errorMessage}" class="alert alert-info alert-dismissible fade show" role="alert">
+	        <span th:text="${errorMessage}"></span>
+	        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+	    </div>
+
+		<!-- 로그인된 사용자 -->
+		<div  sec:authorize="isAuthenticated()">
+			<div class="p-3">
+				<table class="table table-bordered align-middle">
+					<tbody>
+						<tr>
+							<td  rowspan="4"  class="text-center fw-bold fs-3 table-primary"   style="width: 25%;">
+								<img  th:if="${dto != null  and  dto.ufile != null}"
+									  th:src="@{'/uploads/' + ${dto.ufile}}"  style="width:300px"/>
+									  
+								<img  th:if="${dto == null  or  dto.ufile == null}"
+									  th:src="@{'/uploads/no.png'}"  style="width:300px"/>	  
+							</td>
+						</tr>
+						<tr>
+							<th>닉네임</th>
+							<td  th:text="${dto.nickname}"  ></td>
+						</tr>
+						<tr>
+							<th>휴대폰</th>
+							<td  th:text="${dto.mobile}"  ></td>
+						</tr>
+						<tr>
+							<th>소셜로그인</th>
+							<td  th:text="${dto.provider}"></td>
+						</tr>
+					</tbody>
+				</table>
+			</div>
+
+			<div class="mt-3">
+				<!-- 로컬 계정만 정보 수정 버튼 표시 -->
+				<div   th:if="${dto != null  and  dto.provider == 'local'}">
+					<a     th:href="@{/users/update}"    class="btn btn-primary">정보 수정</a>
+					
+					<form  th:action="@{/users/delete}"  method="post"  > 
+					    <input type="hidden"  th:name="${_csrf.parameterName}"  th:value="${_csrf.token}"/>
+						<button type="submit" class="btn btn-danger">회원 탈퇴</button>
+					</form>
+					
+				</div>
+
+				<!-- 소셜 계정은 탈퇴만 가능 (dto가 null이어도 표시) -->
+				<div   th:if="${dto == null  or  dto.provider != 'local'}">  
+				
+					<form  th:action="@{/users/delete}"  method="post" class="d-inline"> 
+					    <input type="hidden"  th:name="${_csrf.parameterName}"  th:value="${_csrf.token}"/>
+						<button type="submit" class="btn btn-danger">회원 탈퇴</button>
+					</form>
+					
+				</div>
+				
+			</div>
+
+		</div>
+
+		<!-- 익명 사용자 -->
+ 		<div sec:authorize="isAnonymous()">
+ 			<p class="alert alert-warning"> 로그인 후 사용가능한 페이지입니다.</p>
+ 			<a th:href="@{/users/login}"  class="btn btn-primary">로그인</a>
+ 		</div> 
+	</div>
+</div>	
+</body>
+</html>

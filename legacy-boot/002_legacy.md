@@ -1,3 +1,306 @@
+Step1) EC2
+1. 인스턴스만들기
+2. 1~16까지 셋팅 (java, nginx, pm2, docker,,,,,)
+
+Step2) oracle ( User )
+```
+SQL> CREATE USER legacy IDENTIFIED BY tiger;
+User created.
+
+SQL> GRANT CONNECT, RESOURCE TO legacy;
+Grant succeeded.
+```
+```
+CREATE TABLE sboard2 (
+	id NUMBER PRIMARY KEY,
+	app_user_id NUMBER NOT NULL,
+	btitle VARCHAR2(1000) NOT NULL,
+	bcontent CLOB NOT NULL,
+	bpass VARCHAR2(255) NOT NULL,
+	bfile VARCHAR2(255) DEFAULT '0.png',
+	bhit NUMBER DEFAULT 0,
+	bip VARCHAR2(255) NOT NULL,
+	created_at DATE  default sysdate
+); 
+create sequence sboard2_seq;
+
+CREATE TABLE APPUSER (
+    APP_USER_ID   NUMBER(5)       CONSTRAINT PK_APPUSER PRIMARY KEY,
+    EMAIL         VARCHAR2(100)   CONSTRAINT NN_APPUSER_EMAIL NOT NULL,
+    PASSWORD      VARCHAR2(100),
+    MBTI_TYPE_ID  NUMBER(3),
+    CREATED_AT    DATE,
+    UFILE         VARCHAR2(255),
+    MOBILE        VARCHAR2(50),
+    NICKNAME      VARCHAR2(50),
+    PROVIDER      VARCHAR2(50)    CONSTRAINT NN_APPUSER_PROVIDER NOT NULL,
+    PROVIDER_ID   VARCHAR2(100)
+);
+	create sequence appuser_seq;
+
+-- 이메일 + PROVIDER 조합 유니크 제약
+ALTER TABLE APPUSER
+ADD CONSTRAINT UK_APPUSER_EMAIL_PROVIDER UNIQUE (EMAIL, PROVIDER);
+
+
+CREATE TABLE AUTHORITIES (
+    AUTH_ID      NUMBER(5)        CONSTRAINT PK_AUTHORITIES PRIMARY KEY,
+    EMAIL        VARCHAR2(255),
+    AUTH         VARCHAR2(255)    CONSTRAINT NN_AUTHORITIES_AUTH NOT NULL,
+    APP_USER_ID  NUMBER(5)
+);
+
+create sequence authorities_seq;
+
+-- 동일 사용자에게 같은 권한 중복 방지 (APP_USER_ID + AUTH 유니크)
+ALTER TABLE AUTHORITIES
+ADD CONSTRAINT UK_AUTHORITIES_USER_AUTH UNIQUE (APP_USER_ID, AUTH);
+
+-- 외래키 설정: AUTHORITIES.APP_USER_ID → APPUSER.APP_USER_ID
+ALTER TABLE AUTHORITIES
+ADD CONSTRAINT FK_AUTHORITIES_APPUSER FOREIGN KEY (APP_USER_ID)
+REFERENCES APPUSER (APP_USER_ID);
+```
+
+
+
+Step3) 구동동작확인 (파일수정)
+[1-3] .env
+1.  properties > .env
+2.  pom.xml    - dotenv-java
+```
+		<!-- dotenv -->
+		<!-- dotenv -->
+		<dependency>
+			  <groupId>io.github.cdimascio</groupId>
+			  <artifactId>dotenv-java</artifactId>
+			  <version>2.3.2</version>
+		</dependency>
+```
+3. @SpringBootApplication
+```
+		dotenv.entries().forEach(entry ->
+            System.setProperty(entry.getKey(), entry.getValue())
+        );
+```
+[4-5] lombok
+4. pom.xml - lombok
+```
+		<dependency>
+		    <groupId>org.projectlombok</groupId>
+		    <artifactId>lombok</artifactId>
+		    <version>1.18.32</version> <!-- 최신 안정 버전 -->
+		    <scope>provided</scope>
+		</dependency>
+```
+5.  pom.xml - build
+```
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-compiler-plugin</artifactId>
+            <configuration>
+                <annotationProcessorPaths>
+                    <path>
+                        <groupId>org.projectlombok</groupId>
+                        <artifactId>lombok</artifactId>
+                        <version>1.18.32</version>
+                    </path>
+                </annotationProcessorPaths>
+            </configuration>
+        </plugin>
+```
+
+[6]  mvnw
+6. build
+```
+.\mvnw.cmd clean package -DskipTests
+```
+
+..........................................................
+
+
+Step4) [Git Hub] Actions secrets / New secret
+```
+Name: LEGACY_ENV
+Secret: .env파일내용
+```
+..........................................................
+
+
+Step5) [AWS] - oracle
+1. 유저만들기
+2. table 처리
+```
+sudo docker exec -it oracle-xe  sqlplus system/oracle@XE
+
+CREATE USER legacy IDENTIFIED BY tiger;
+GRANT CONNECT, RESOURCE TO legacy;
+
+
+sudo  docker exec -it oracle-xe  sqlplus legacy/tiger@XE
+
+CREATE TABLE sboard2 (
+	id NUMBER PRIMARY KEY,
+	app_user_id NUMBER NOT NULL,
+	btitle VARCHAR2(1000) NOT NULL,
+	bcontent CLOB NOT NULL,
+	bpass VARCHAR2(255) NOT NULL,
+	bfile VARCHAR2(255) DEFAULT '0.png',
+	bhit NUMBER DEFAULT 0,
+	bip VARCHAR2(255) NOT NULL,
+	created_at DATE  default sysdate
+); 
+create sequence sboard2_seq;
+
+CREATE TABLE APPUSER (
+    APP_USER_ID   NUMBER(5)       CONSTRAINT PK_APPUSER PRIMARY KEY,
+    EMAIL         VARCHAR2(100)   CONSTRAINT NN_APPUSER_EMAIL NOT NULL,
+    PASSWORD      VARCHAR2(100),
+    MBTI_TYPE_ID  NUMBER(3),
+    CREATED_AT    DATE,
+    UFILE         VARCHAR2(255),
+    MOBILE        VARCHAR2(50),
+    NICKNAME      VARCHAR2(50),
+    PROVIDER      VARCHAR2(50)    CONSTRAINT NN_APPUSER_PROVIDER NOT NULL,
+    PROVIDER_ID   VARCHAR2(100)
+);
+	create sequence appuser_seq;
+
+-- 이메일 + PROVIDER 조합 유니크 제약
+ALTER TABLE APPUSER
+ADD CONSTRAINT UK_APPUSER_EMAIL_PROVIDER UNIQUE (EMAIL, PROVIDER);
+
+
+CREATE TABLE AUTHORITIES (
+    AUTH_ID      NUMBER(5)        CONSTRAINT PK_AUTHORITIES PRIMARY KEY,
+    EMAIL        VARCHAR2(255),
+    AUTH         VARCHAR2(255)    CONSTRAINT NN_AUTHORITIES_AUTH NOT NULL,
+    APP_USER_ID  NUMBER(5)
+);
+
+create sequence authorities_seq;
+
+-- 동일 사용자에게 같은 권한 중복 방지 (APP_USER_ID + AUTH 유니크)
+ALTER TABLE AUTHORITIES
+ADD CONSTRAINT UK_AUTHORITIES_USER_AUTH UNIQUE (APP_USER_ID, AUTH);
+
+-- 외래키 설정: AUTHORITIES.APP_USER_ID → APPUSER.APP_USER_ID
+ALTER TABLE AUTHORITIES
+ADD CONSTRAINT FK_AUTHORITIES_APPUSER FOREIGN KEY (APP_USER_ID)
+REFERENCES APPUSER (APP_USER_ID);
+ 
+```
+
+
+
+
+Step6) nigix
+```
+
+server {
+    listen 80;
+    server_name 43.202.251.75;
+
+
+        # legacy-boot 서비스 (포트 8484)
+        location /legacy {
+                proxy_pass http://localhost:8484;
+                proxy_http_version 1.1;
+                proxy_set_header Host $host;
+                proxy_set_header X-Real-IP $remote_addr;
+                proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+                proxy_set_header X-Forwarded-Proto $scheme;
+        }
+
+
+        # legacy-boot 업로드 파일 접근
+        location /legacy/uploads/ {
+                alias /home/ubuntu/legacy-boot/target/uploads/;
+                autoindex off;
+        }
+
+
+    # 프론트엔드 (Next.js SSR 서버)
+    location / {
+        proxy_pass http://localhost:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_cache_bypass $http_upgrade;
+        proxy_set_header Cookie $http_cookie;
+    }
+
+    # 백엔드 - 유저 인증 (/auth)
+    location /auth {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Cookie $http_cookie;
+    }
+
+    # 백엔드 - 일반 API (/api)
+    location /api {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Cookie $http_cookie;
+    }
+
+    # 백엔드 - 소셜 로그인 (/oauth2)
+    location /oauth2 {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Cookie $http_cookie;
+    }
+
+    # 백엔드 - 카카오/구글 리다이렉트 처리
+    location /login/oauth2 {
+        proxy_pass http://localhost:8080;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # 프론트엔드에서 처리해야 하는 콜백
+    location /oauth2/callback {
+        proxy_pass http://localhost:3000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_set_header Cookie $http_cookie;
+    }
+
+    # 정적 파일 경로
+    location /uploads/ {
+        alias /home/ubuntu/app/back/build/libs/uploads/;
+        autoindex off;
+    }
+
+}
+
+```
+```
+sudo nginx -t
+sudo systemctl restart nginx
+```
+
+Step7) deploy
+.github\workflows
+```
 name: Deploy Fullstack App   # 워크플로우 이름 정의
 
 on:     # 실행조건 정의
@@ -300,3 +603,12 @@ jobs:       # 실행할 job 정의
               -Doracle.jdbc.timezoneAsRegion=false \
               -Duser.timezone=Asia/Seoul \
               -jar /home/ubuntu/legacy-boot/target/boot001-0.0.1-SNAPSHOT.jar
+```
+
+
+Step8) Git Actions 
+```
+git add .
+git commit -m "test"
+git push origin main
+```
